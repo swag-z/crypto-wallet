@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crypto Wallet — Virtual Cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #07090F;
+    --surface: #0E1220;
+    --surface2: #161B2E;
+    --surface3: #1C2340;
+    --border: rgba(255,255,255,0.07);
+    --violet: #7C3AED;
+    --violet-light: #9F67F8;
+    --violet-glow: rgba(124,58,237,0.35);
+    --cyan: #06B6D4;
+    --cyan-glow: rgba(6,182,212,0.3);
+    --green: #10B981;
+    --red: #EF4444;
+    --amber: #F59E0B;
+    --text: #F1F5F9;
+    --text-muted: #64748B;
+    --text-dim: #94A3B8;
+    --radius: 16px;
+    --radius-sm: 8px;
+    --card-h: 200px;
+  }
+
+  html { font-family: 'Inter', sans-serif; }
+  body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+
+  /* ── LANDING PAGE ── */
+  #landing-screen {
+    min-height: 100vh;
+    display: none;
+    flex-direction: column;
+    background: radial-gradient(circle at 10% 20%, rgba(6,182,212,0.12) 0%, transparent 45%),
+                radial-gradient(circle at 90% 80%, rgba(124,58,237,0.12) 0%, transparent 45%),
+                var(--bg);
+    position: relative;
+  }
+  .landing-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 40px;
+    max-width: 1440px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .landing-logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--violet-light);
+    letter-spacing: -0.5px;
+  }
+  .landing-logo span { color: var(--cyan); }
+  .btn-join {
+    padding: 12px 32px;
+    background: linear-gradient(135deg, var(--violet), var(--cyan));
+    border: none;
+    border-radius: 30px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 20px var(--violet-glow);
+    font-family: inherit;
+  }
+  .btn-join:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px var(--violet-glow), 0 0 15px var(--cyan-glow);
+    filter: brightness(1.1);
+  }
+  .landing-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px 100px;
+    max-width: 1000px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .landing-hero {
+    text-align: center;
+    animation: fadeIn 0.8s ease;
+  }
+  .landing-tag {
+    display: inline-block;
+    padding: 6px 16px;
+    background: rgba(124,58,237,0.1);
+    border: 1px solid rgba(124,58,237,0.2);
+    border-radius: 20px;
+    color: var(--violet-light);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .landing-title {
+    font-size: 54px;
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 24px;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #FFFFFF 40%, var(--text-dim) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .landing-title span {
+    background: linear-gradient(135deg, var(--cyan), var(--violet-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .landing-desc {
+    font-size: 18px;
+    color: var(--text-muted);
+    max-width: 640px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* ── TRANSITION CURTAINS ── */
+  .transition-gate {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+  }
+  .gate-panel {
+    flex: 1;
+    width: 100%;
+    background: var(--surface);
+    transition: transform 0.6s cubic-bezier(0.85, 0, 0.15, 1);
+  }
+  .gate-panel.top { transform: translateY(-100%); border-bottom: 2px solid var(--violet); }
+  .gate-panel.bottom { transform: translateY(100%); border-top: 2px solid var(--cyan); }
+  
+  .transition-gate.active .gate-panel.top { transform: translateY(0); }
+  .transition-gate.active .gate-panel.bottom { transform: translateY(0); }
+
+  @media (max-width: 768px) {
+    .landing-header { padding: 20px 24px; }
+    .landing-title { font-size: 36px; }
+    .landing-desc { font-size: 15px; }
+  }
+
+  /* ── AUTH ── */
+  #auth-screen {
+    min-height: 100vh;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(124,58,237,0.18) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 80%, rgba(6,182,212,0.1) 0%, transparent 50%),
+                var(--bg);
+    padding: 24px;
+  }
+  .auth-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(124,58,237,0.1);
+  }
+  .auth-logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--violet-light);
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+  }
+  .auth-logo span { color: var(--cyan); }
+  .auth-subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 36px; }
+  .auth-tabs { display: flex; gap: 4px; background: var(--surface2); border-radius: 10px; padding: 4px; margin-bottom: 28px; }
+  .auth-tab {
+    flex: 1; text-align: center; padding: 9px; border-radius: 7px;
+    cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text-muted);
+    transition: all .2s;
+  }
+  .auth-tab.active { background: var(--violet); color: #fff; box-shadow: 0 2px 12px var(--violet-glow); }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+  .form-group input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 13px 16px; color: var(--text); font-size: 15px;
+    outline: none; transition: border .2s, box-shadow .2s; font-family: inherit;
+  }
+  .form-group input:focus { border-color: var(--violet); box-shadow: 0 0 0 3px var(--violet-glow); }
+  .btn-primary {
+    width: 100%; padding: 14px; background: linear-gradient(135deg, var(--violet), #5B21B6);
+    border: none; border-radius: 10px; color: #fff; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: all .2s; margin-top: 8px; font-family: inherit;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px var(--violet-glow); }
+  .btn-primary:active { transform: translateY(0); }
+
+  /* ── APP LAYOUT ── */
+  #app-screen { display: none; min-height: 100vh; }
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: 240px;
+    background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; padding: 28px 0; z-index: 100;
+    transition: transform .3s;
+  }
+  .sidebar-logo {
+    font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700;
+    color: var(--violet-light); padding: 0 24px 28px;
+    border-bottom: 1px solid var(--border); margin-bottom: 16px;
+  }
+  .sidebar-logo span { color: var(--cyan); }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px 24px;
+    color: var(--text-muted); cursor: pointer; transition: all .2s;
+    font-size: 14px; font-weight: 500; border-left: 3px solid transparent;
+  }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--violet-light); border-left-color: var(--violet); background: rgba(124,58,237,0.08); }
+  .nav-item i { width: 18px; text-align: center; font-size: 15px; }
+  .sidebar-footer { margin-top: auto; padding: 16px 24px; border-top: 1px solid var(--border); }
+  .user-chip { display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg,var(--violet),var(--cyan)); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .user-email { font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
+  .logout-btn { margin-left: auto; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; transition: color .2s; }
+  .logout-btn:hover { color: var(--red); }
+
+  .main { margin-left: 240px; min-height: 100vh; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 32px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: rgba(7,9,15,0.85); backdrop-filter: blur(16px); z-index: 50;
+  }
+  .page-title { font-size: 20px; font-weight: 700; }
+  .topbar-actions { display: flex; gap: 12px; }
+  .btn-sm {
+    padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all .2s; font-family: inherit; border: none;
+  }
+  .btn-violet { background: linear-gradient(135deg,var(--violet),#5B21B6); color: #fff; }
+  .btn-violet:hover { box-shadow: 0 4px 16px var(--violet-glow); transform: translateY(-1px); }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
+  .btn-outline:hover { border-color: var(--violet); color: var(--violet-light); }
+
+  .content { padding: 32px; }
+
+  /* ── PAGES ── */
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn .3s ease; }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform:none; } }
+
+  /* ── STATS ROW ── */
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 32px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px; position: relative; overflow: hidden;
+  }
+  .stat-card::before { content: ''; position: absolute; top: -30px; right: -30px; width: 100px; height: 100px; border-radius: 50%; background: var(--violet-glow); filter: blur(30px); pointer-events: none; }
+  .stat-label { font-size: 12px; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); margin-bottom: 10px; }
+  .stat-value { font-family: 'Space Mono', monospace; font-size: 28px; font-weight: 700; color: var(--text); }
+  .stat-value.green { color: var(--green); }
+  .stat-sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+  .stat-icon { position: absolute; top: 20px; right: 20px; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .stat-icon.v { background: rgba(124,58,237,0.15); color: var(--violet-light); }
+  .stat-icon.c { background: rgba(6,182,212,0.15); color: var(--cyan); }
+  .stat-icon.g { background: rgba(16,185,129,0.15); color: var(--green); }
+
+  /* ── CARDS GRID ── */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .section-title { font-size: 16px; font-weight: 700; }
+  .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
+
+  /* ── PHYSICAL CARD ── */
+  .card-wrap { perspective: 1000px; cursor: default; }
+  .virtual-card {
+    height: var(--card-h); border-radius: 20px; padding: 24px;
+    position: relative; overflow: hidden;
+    transition: transform .3s ease, box-shadow .3s ease;
+    transform-style: preserve-3d;
+  }
+  .virtual-card:hover { box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+  .vc-bg-1 { background: linear-gradient(135deg, #1a0533 0%, #3d0f7a 50%, #0d1f4a 100%); }
+  .vc-bg-2 { background: linear-gradient(135deg, #03292f 0%, #065b6a 50%, #021a2e 100%); }
+  .vc-bg-3 { background: linear-gradient(135deg, #1a0a00 0%, #5a2500 50%, #1a0a10 100%); }
+  .vc-bg-4 { background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 50%, #16213e 100%); }
+  .card-shimmer {
+    position: absolute; inset: 0; border-radius: 20px;
+    background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.05) 50%, transparent 80%);
+    pointer-events: none;
+  }
+  .card-chip { position: absolute; top: 24px; right: 24px; }
+  .card-chip i { font-size: 28px; color: rgba(255,215,100,0.85); }
+  .card-logo {
+    position: absolute; bottom: 24px; right: 24px;
+    font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700;
+    color: rgba(255,255,255,0.6); letter-spacing: 1px;
+  }
+  .card-number {
+    font-family: 'Space Mono', monospace; font-size: 17px; letter-spacing: 3px;
+    color: rgba(255,255,255,0.9); margin-top: 36px; font-weight: 700;
+  }
+  .card-info-row { display: flex; gap: 24px; margin-top: 14px; }
+  .card-info-label { font-size: 9px; text-transform: uppercase; letter-spacing: .8px; color: rgba(255,255,255,0.45); margin-bottom: 3px; }
+  .card-info-val { font-family: 'Space Mono', monospace; font-size: 13px; color: rgba(255,255,255,0.85); }
+  .card-status-badge {
+    position: absolute; top: 20px; left: 24px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px;
+    padding: 4px 10px; border-radius: 20px;
+  }
+  .badge-active { background: rgba(16,185,129,0.2); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+  .badge-blocked { background: rgba(239,68,68,0.2); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+
+  .card-actions {
+    display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap;
+  }
+  .card-actions .btn-sm { flex: 1; min-width: 80px; padding: 8px 10px; font-size: 12px; text-align: center; }
+  .btn-cyan { background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.3); color: var(--cyan); }
+  .btn-cyan:hover { background: rgba(6,182,212,0.25); }
+  .btn-red { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); color: var(--red); }
+  .btn-red:hover { background: rgba(239,68,68,0.22); }
+  .btn-green { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25); color: var(--green); }
+  .btn-green:hover { background: rgba(16,185,129,0.22); }
+  .btn-amber { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.25); color: var(--amber); }
+  .btn-amber:hover { background: rgba(245,158,11,0.22); }
+
+  .card-item-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; transition: border-color .2s; }
+  .card-item-wrap:hover { border-color: rgba(124,58,237,0.3); }
+  .card-balance-row { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .card-balance-label { font-size: 12px; color: var(--text-muted); }
+  .card-balance-val { font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700; color: var(--cyan); }
+
+  .empty-state { text-align: center; padding: 64px 32px; color: var(--text-muted); }
+  .empty-state i { font-size: 48px; margin-bottom: 16px; opacity: .3; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── TRANSACTIONS ── */
+  .tx-list { display: flex; flex-direction: column; gap: 8px; }
+  .tx-item {
+    display: flex; align-items: center; gap: 16px; padding: 16px 20px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    transition: border-color .2s;
+  }
+  .tx-item:hover { border-color: rgba(124,58,237,0.25); }
+  .tx-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .tx-icon.topup { background: rgba(16,185,129,0.15); color: var(--green); }
+  .tx-icon.transfer { background: rgba(124,58,237,0.15); color: var(--violet-light); }
+  .tx-icon.block { background: rgba(239,68,68,0.15); color: var(--red); }
+  .tx-icon.unblock { background: rgba(245,158,11,0.15); color: var(--amber); }
+  .tx-info { flex: 1; min-width: 0; }
+  .tx-type { font-size: 14px; font-weight: 600; }
+  .tx-date { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .tx-card-ref { font-size: 11px; color: var(--text-muted); font-family: 'Space Mono', monospace; }
+  .tx-amount { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; }
+  .tx-amount.pos { color: var(--green); }
+  .tx-amount.neg { color: var(--red); }
+  .tx-amount.neutral { color: var(--text-muted); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px;
+    opacity: 0; pointer-events: none; transition: opacity .25s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface); border: 1px solid rgba(124,58,237,0.2);
+    border-radius: 24px; padding: 36px; width: 100%; max-width: 440px;
+    transform: scale(.95) translateY(16px); transition: transform .25s;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+  }
+  .modal-overlay.open .modal { transform: none; }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  .modal-title { font-size: 18px; font-weight: 700; }
+  .modal-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 20px; transition: color .2s; padding: 4px; }
+  .modal-close:hover { color: var(--text); }
+  .modal select {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 13px 16px; color: var(--text); font-size: 14px;
+    outline: none; transition: border .2s; cursor: pointer; font-family: inherit;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2364748B' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 16px center;
+  }
+  .modal select:focus { border-color: var(--violet); box-shadow: 0 0 0 3px var(--violet-glow); }
+  .modal select option { background: var(--surface2); }
+  .modal-hint { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+
+  /* ── TOAST ── */
+  #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+  .toast {
+    display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+    border-radius: 12px; font-size: 14px; font-weight: 500; min-width: 260px; max-width: 380px;
+    animation: slideIn .3s ease; box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+  }
+  @keyframes slideIn { from { transform: translateX(100%); opacity:0; } to { transform:none; opacity:1; } }
+  @keyframes slideOut { to { transform: translateX(120%); opacity:0; } }
+  .toast.success { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.3); color: #6EE7B7; }
+  .toast.error { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.3); color: #FCA5A5; }
+  .toast.info { background: rgba(124,58,237,0.15); border-color: rgba(124,58,237,0.3); color: var(--violet-light); }
+
+  /* ── BALANCE CHART ── */
+  .balance-chart-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 32px; }
+  .balance-bar-row { display: flex; gap: 8px; align-items: center; margin-top: 14px; }
+  .balance-bar { flex: 1; height: 8px; border-radius: 4px; background: var(--surface3); overflow: hidden; }
+  .balance-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--violet), var(--cyan)); transition: width .6s ease; }
+  .bar-label { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+
+  /* ── CVV REVEAL ── */
+  .cvv-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.6); margin-right: 2px; }
+  .cvv-btn { background: none; border: none; color: rgba(255,255,255,0.45); cursor: pointer; font-size: 11px; padding: 0 4px; transition: color .2s; }
+  .cvv-btn:hover { color: rgba(255,255,255,0.85); }
+
+  /* ── MOBILE ── */
+  .menu-toggle { display: none; background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; }
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: none; }
+    .main { margin-left: 0; }
+    .topbar { padding: 16px 20px; }
+    .content { padding: 20px 16px; }
+    .stats-row { grid-template-columns: 1fr; gap: 12px; }
+    .cards-grid { grid-template-columns: 1fr; }
+    .menu-toggle { display: block; }
+    .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; display: none; }
+    .sidebar-overlay.show { display: block; }
+  }
+
+  /* filter bar */
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-btn { padding: 7px 16px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: 13px; cursor: pointer; transition: all .2s; font-family: inherit; }
+  .filter-btn.active { background: rgba(124,58,237,0.15); border-color: var(--violet); color: var(--violet-light); }
+
+  .divider { height: 1px; background: var(--border); margin: 28px 0; }
+  .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+
+  /* ── OPERATIONS PAGE ── */
+  .op-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-bottom: 36px; }
+  .op-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px 24px; cursor: pointer; transition: all .2s; text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .op-card:hover { border-color: var(--violet); transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,0.3); }
+  .op-icon {
+    width: 56px; height: 56px; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+  }
+  .op-icon.green  { background: rgba(16,185,129,0.15);  color: var(--green); }
+  .op-icon.violet { background: rgba(124,58,237,0.15);  color: var(--violet-light); }
+  .op-icon.cyan   { background: rgba(6,182,212,0.15);   color: var(--cyan); }
+  .op-icon.amber  { background: rgba(245,158,11,0.15);  color: var(--amber); }
+  .op-title { font-size: 15px; font-weight: 700; color: var(--text); }
+  .op-desc  { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="transition-gate" id="transition-gate">
+  <div class="gate-panel top"></div>
+  <div class="gate-panel bottom"></div>
+</div>
+
+<div id="landing-screen">
+  <header class="landing-header">
+    <div class="landing-logo">Swag<span>-z Wallet</span></div>
+    <button class="btn-join" onclick="animateToAuth()">Join!</button>
+  </header>
+  <main class="landing-container">
+    <div class="landing-hero">
+      <span class="landing-tag">Next-Gen Payment Solution</span>
+      <h1 class="landing-title">Advanced <span>Virtual Cards</span><br>for Modern FinTech</h1>
+      <p class="landing-desc">
+        Instantly issue secure VISA payment cards, easily manage dynamic global limits, distribute balances between wallets, and handle instant crypto-friendly transactions through a unified premium user dashboard.
+      </p>
+    </div>
+  </main>
+</div>
+
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">Swag<span>-z Wallet</span></div>
+    <div class="auth-subtitle">Virtual cards for online payments</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchTab('login')">Sign in</div>
+      <div class="auth-tab" onclick="switchTab('register')">Sign up</div>
+    </div>
+    <div id="tab-login">
+      <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="you@example.com"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="login-password" placeholder="••••••••"></div>
+      <button class="btn-primary" onclick="doLogin()"><i class="fas fa-arrow-right-to-bracket"></i> Sign in</button>
+    </div>
+    <div id="tab-register" style="display:none">
+      <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="you@example.com"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="reg-password" placeholder="Minimum of 6 characters"></div>
+      <div class="form-group"><label>Repeat the password</label><input type="password" id="reg-confirm" placeholder="Repeat the password"></div>
+      <button class="btn-primary" onclick="doRegister()"><i class="fas fa-user-plus"></i> Sign Up</button>
+    </div>
+  </div>
+</div>
+
+<div id="app-screen">
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">Swag<span>-z Wallet</span></div>
+    <nav>
+      <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
+        <i class="fas fa-chart-pie"></i> Dashboard
+      </div>
+      <div class="nav-item" onclick="showPage('cards')" id="nav-cards">
+        <i class="fas fa-credit-card"></i> Cards
+      </div>
+      <div class="nav-item" onclick="showPage('operations')" id="nav-operations">
+        <i class="fas fa-bolt"></i> Operations
+      </div>
+      <div class="nav-item" onclick="showPage('transactions')" id="nav-transactions">
+        <i class="fas fa-clock-rotate-left"></i> Transactions
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="avatar" id="user-avatar">U</div>
+        <div class="user-email" id="user-email-label">—</div>
+        <button class="logout-btn" onclick="doLogout()" title="Выйти"><i class="fas fa-right-from-bracket"></i></button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="menu-toggle" onclick="openSidebar()"><i class="fas fa-bars"></i></button>
+        <span class="page-title" id="page-title">Dashboard</span>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-sm btn-violet" onclick="openNewCardModal()"><i class="fas fa-plus"></i> Create Card</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page active" id="page-dashboard">
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-icon v"><i class="fas fa-wallet"></i></div>
+            <div class="stat-label">Total</div>
+            <div class="stat-value" id="stat-total">$0.00</div>
+            <div class="stat-sub">All cards</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon c"><i class="fas fa-credit-card"></i></div>
+            <div class="stat-label">Active cards</div>
+            <div class="stat-value" id="stat-cards">0</div>
+            <div class="stat-sub" id="stat-cards-sub">out of 0 released</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon g"><i class="fas fa-arrow-up-right-dots"></i></div>
+            <div class="stat-label">Transactions</div>
+            <div class="stat-value green" id="stat-txs">0</div>
+            <div class="stat-sub">For all the time</div>
+          </div>
+        </div>
+
+        <div class="balance-chart-wrap" id="balance-chart-section">
+          <div class="stat-label">Card balance distribution</div>
+          <div id="balance-bars"></div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">Last activities</div>
+          <button class="btn-sm btn-outline" onclick="showPage('transactions')">See All <i class="fas fa-arrow-right"></i></button>
+        </div>
+        <div class="tx-list" id="dashboard-txs"></div>
+      </div>
+
+      <div class="page" id="page-cards">
+        <div class="cards-grid" id="cards-grid"></div>
+      </div>
+
+      <div class="page" id="page-transactions">
+        <div class="filter-bar">
+          <button class="filter-btn active" onclick="filterTx('all', this)">All</button>
+          <button class="filter-btn" onclick="filterTx('topup', this)">Deposits</button>
+          <button class="filter-btn" onclick="filterTx('transfer', this)">Remittances</button>
+          <button class="filter-btn" onclick="filterTx('block', this)">Block</button>
+        </div>
+        <div class="tx-list" id="all-txs"></div>
+      </div>
+
+      <div class="page" id="page-operations">
+        <div class="op-grid">
+          <div class="op-card" onclick="showPage('operations'); openTopup()">
+            <div class="op-icon green"><i class="fas fa-arrow-down-to-line"></i></div>
+            <div class="op-title">Deposit</div>
+            <div class="op-desc">Top up the balance of any of your active cards</div>
+          </div>
+          <div class="op-card" onclick="openTransfer()">
+            <div class="op-icon violet"><i class="fas fa-arrow-right-arrow-left"></i></div>
+            <div class="op-title">Remittance between cards</div>
+            <div class="op-desc">Transfer funds between your own cards</div>
+          </div>
+          <div class="op-card" onclick="openExtTransferModal()">
+            <div class="op-icon cyan"><i class="fas fa-globe"></i></div>
+            <div class="op-title">Transfer to the client's crypto wallet</div>
+            <div class="op-desc">Send money to another customer's card using their card number</div>
+          </div>
+          <div class="op-card" onclick="openPurchaseModal()">
+            <div class="op-icon amber"><i class="fas fa-bag-shopping"></i></div>
+            <div class="op-title">Waste</div>
+            <div class="op-desc">Test —$15.00 from the selected card</div>
+          </div>
+        </div>
+        <div class="section-header" style="margin-top:8px">
+          <div class="section-title">Last operations</div>
+          <button class="btn-sm btn-outline" onclick="showPage('transactions')">See All <i class="fas fa-arrow-right"></i></button>
+        </div>
+        <div class="tx-list" id="ops-recent-txs"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-newcard">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fas fa-plus" style="color:var(--violet-light)"></i> Issue a new card</div>
+      <button class="modal-close" onclick="closeModal('modal-newcard')">×</button>
+    </div>
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:24px">A virtual VISA card with a zero balance will be created. It will be valid for 3 years. <span id="card-limit-hint"></span></p>
+    <button class="btn-primary" onclick="issueCard()"><i class="fas fa-magic-wand-sparkles"></i> Create a payment card</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-topup">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fas fa-arrow-down" style="color:var(--green)"></i> Deposit</div>
+      <button class="modal-close" onclick="closeModal('modal-topup')">×</button>
+    </div>
+    <div class="form-group">
+      <label>Card</label>
+      <select id="topup-card"></select>
+    </div>
+    <div class="form-group">
+      <label>Amount (USD)</label>
+      <input type="number" id="topup-amount" placeholder="0.00" min="0.01" step="0.01">
+    </div>
+    <button class="btn-primary" onclick="doTopup()"><i class="fas fa-check"></i> Deposit</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-transfer">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fas fa-arrow-right-arrow-left" style="color:var(--violet-light)"></i> Remittance between cards</div>
+      <button class="modal-close" onclick="closeModal('modal-transfer')">×</button>
+    </div>
+    <div class="form-group">
+      <label>From</label>
+      <select id="transfer-from"></select>
+      <div class="modal-hint" id="transfer-from-balance"></div>
+    </div>
+    <div class="form-group">
+      <label>To</label>
+      <select id="transfer-to"></select>
+    </div>
+    <div class="form-group">
+      <label>Amount (USD)</label>
+      <input type="number" id="transfer-amount" placeholder="0.00" min="0.01" step="0.01">
+    </div>
+    <button class="btn-primary" onclick="doTransfer()"><i class="fas fa-paper-plane"></i> Send</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-ext-transfer">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fas fa-globe" style="color:var(--cyan)"></i> Remittance by card number</div>
+      <button class="modal-close" onclick="closeModal('modal-ext-transfer')">×</button>
+    </div>
+    <div class="form-group">
+      <label>From your card</label>
+      <select id="ext-transfer-from" onchange="updateExtFromBalance()"></select>
+      <div class="modal-hint" id="ext-from-balance"></div>
+    </div>
+    <div class="form-group">
+      <label>Recipient's card number</label>
+      <input type="text" id="ext-transfer-to-num" placeholder="0000 0000 0000 0000" maxlength="19"
+        oninput="formatCardInput(this)" onblur="lookupExtCard()">
+      <div class="modal-hint" id="ext-card-lookup" style="margin-top:6px"></div>
+    </div>
+    <div class="form-group">
+      <label>Amount (USD)</label>
+      <input type="number" id="ext-transfer-amount" placeholder="0.00" min="0.001" step="0.0001">
+    </div>
+    <button class="btn-primary" onclick="doExtTransfer()"><i class="fas fa-paper-plane"></i> Send</button>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<div class="modal-overlay" id="modal-purchase">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fas fa-bag-shopping" style="color:var(--amber)"></i> Purchase</div>
+      <button class="modal-close" onclick="closeModal('modal-purchase')">×</button>
+    </div>
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px">
+      Test purchase. -<strong style="color:var(--amber)">$15.00</strong>.
+    </p>
+    <div class="form-group">
+      <label>From</label>
+      <select id="purchase-card"></select>
+      <div class="modal-hint" id="purchase-card-balance"></div>
+    </div>
+    <button class="btn-primary" style="background:linear-gradient(135deg,#92400e,#d97706)" onclick="doPurchase()">
+      <i class="fas fa-bag-shopping"></i> Pay $15.00
+    </button>
+  </div>
+</div>
+
+<script>
+// ─────────── UTILS ───────────
+const $ = id => document.getElementById(id);
+const uid = () => Math.random().toString(36).slice(2,10);
+const fmt = n => '$' + Number(n).toFixed(2);
+const fmtDate = d => new Date(d).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+const maskCard = n => '**** **** **** ' + n.replace(/\s/g,'').slice(-4);
+const fullCard = n => n; // already stored with spaces
+
+function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+function load(key, def) { try { return JSON.parse(localStorage.getItem(key)) || def; } catch { return def; } }
+
+function toast(msg, type='info') {
+  const t = document.createElement('div');
+  const icons = {success:'fa-check-circle', error:'fa-circle-exclamation', info:'fa-circle-info'};
+  t.className = `toast ${type}`;
+  t.innerHTML = `<i class="fas ${icons[type]}"></i> ${msg}`;
+  $('toast-container').appendChild(t);
+  setTimeout(() => { t.style.animation='slideOut .3s ease forwards'; setTimeout(()=>t.remove(),300); }, 3200);
+}
+
+// ─────────── DATA ───────────
+let currentUser = null;
+
+function getUsers() { return load('wallet_users', []); }
+function saveUsers(u) { save('wallet_users', u); }
+function getCards() { return load('wallet_cards', []); }
+function saveCards(c) { save('wallet_cards', c); }
+function getTxs() { return load('wallet_txs', []); }
+function saveTxs(t) { save('wallet_txs', t); }
+
+function getUserCards() {
+  if (!currentUser) return [];
+  return getCards().filter(c => c.userId === currentUser.id);
+}
+function getUserTxs() {
+  if (!currentUser) return [];
+  return getTxs().filter(t => t.userId === currentUser.id);
+}
+
+function reloadUser() {
+  const users = getUsers();
+  currentUser = users.find(u => u.id === currentUser?.id) || currentUser;
+}
+
+// ─────────── AUTH ───────────
+function switchTab(tab) {
+  $('tab-login').style.display = tab==='login' ? 'block':'none';
+  $('tab-register').style.display = tab==='register' ? 'block':'none';
+  document.querySelectorAll('.auth-tab').forEach((el,i)=>{
+    el.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register'));
+  });
+}
+
+function doRegister() {
+  const email = $('reg-email').value.trim();
+  const pw = $('reg-password').value;
+  const conf = $('reg-confirm').value;
+  if (!email || !pw) return toast('Fill in all fields','error');
+  if (pw !== conf) return toast('Another passwords','error');
+  if (pw.length < 6) return toast('The password is at least 6 characters long','error');
+  const users = getUsers();
+  if (users.find(u=>u.email===email)) return toast('Email already registered','error');
+  const user = { id:'u_'+uid(), email, password: btoa(pw) };
+  users.push(user);
+  saveUsers(users);
+  toast('Account created! Enter.','success');
+  switchTab('login');
+  $('login-email').value = email;
+}
+
+function doLogin() {
+  const email = $('login-email').value.trim();
+  const pw = $('login-password').value;
+  const users = getUsers();
+  const user = users.find(u=>u.email===email && u.password===btoa(pw));
+  if (!user) return toast('Wrong email or password','error');
+  localStorage.setItem('wallet_token', user.id);
+  currentUser = user;
+  enterApp();
+}
+
+function doLogout() {
+  localStorage.removeItem('wallet_token');
+  currentUser = null;
+  $('app-screen').style.display = 'none';
+  $('auth-screen').style.display = 'none';
+  $('landing-screen').style.display = 'flex';
+  toast('You have logged out','info');
+}
+
+function checkAuth() {
+  const token = localStorage.getItem('wallet_token');
+  if (!token) {
+    $('landing-screen').style.display = 'flex';
+    return;
+  }
+  const users = getUsers();
+  const user = users.find(u=>u.id===token);
+  if (!user) {
+    $('landing-screen').style.display = 'flex';
+    return;
+  }
+  currentUser = user;
+  enterApp();
+}
+
+function enterApp() {
+  $('auth-screen').style.display = 'none';
+  $('landing-screen').style.display = 'none';
+  $('app-screen').style.display = 'block';
+  const initials = currentUser.email[0].toUpperCase();
+  $('user-avatar').textContent = initials;
+  $('user-email-label').textContent = currentUser.email;
+  showPage('dashboard');
+}
+
+function animateToAuth() {
+  const gate = $('transition-gate');
+  gate.classList.add('active');
+  
+  // В середине анимации переключаем экраны (0.6s)
+  setTimeout(() => {
+    $('landing-screen').style.display = 'none';
+    $('auth-screen').style.display = 'flex';
+  }, 600);
+
+  // Убираем шторки после завершения цикла открытия (1.2s)
+  setTimeout(() => {
+    gate.classList.remove('active');
+  }, 1200);
+}
+
+// ─────────── NAVIGATION ───────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  $('page-'+name).classList.add('active');
+  const navEl = $('nav-'+name);
+  if (navEl) navEl.classList.add('active');
+  const titles = {dashboard:'Dashboard', cards:'Cards', operations:'Operations', transactions:'Transactions'};
+  $('page-title').textContent = titles[name]||name;
+  closeSidebar();
+  if (name==='dashboard')    renderDashboard();
+  if (name==='cards')        renderCards();
+  if (name==='operations')   renderOpsRecent();
+  if (name==='transactions') renderAllTxs('all');
+}
+
+function openSidebar() { $('sidebar').classList.add('open'); $('sidebar-overlay').classList.add('show'); }
+function closeSidebar() { $('sidebar').classList.remove('open'); $('sidebar-overlay').classList.remove('show'); }
+
+// ─────────── CARDS ───────────
+const cardGradients = ['vc-bg-1','vc-bg-2','vc-bg-3','vc-bg-4'];
+let cvvVisible = {};
+let numVisible = {};
+
+function genCardNumber() {
+  const allCards = getCards();
+  const existing = new Set(allCards.map(c => c.cardNumber.replace(/\s/g,'')));
+  let num;
+  do {
+    let n = '4';
+    for (let i = 0; i < 15; i++) n += Math.floor(Math.random()*10);
+    num = n;
+  } while (existing.has(num));
+  return num.match(/.{4}/g).join(' ');
+}
+function genExpiry() {
+  const now = new Date();
+  const exp = new Date(now.getFullYear()+3, now.getMonth(), 1);
+  return String(exp.getMonth()+1).padStart(2,'0') + '/' + String(exp.getFullYear()).slice(2);
+}
+function genCvv() { return String(Math.floor(Math.random()*900)+100); }
+
+const MAX_CARDS = 5;
+
+function issueCard() {
+  reloadUser();
+  const userCards = getUserCards();
+  if (userCards.length >= MAX_CARDS) {
+    closeModal('modal-newcard');
+    return toast(`Maximum ${MAX_CARDS} cards per account`, 'error');
+  }
+  const card = {
+    id:'c_'+uid(), cardNumber:genCardNumber(), expiry:genExpiry(),
+    cvv:genCvv(), balance:0, status:'active', userId:currentUser.id,
+    gradient:cardGradients[Math.floor(Math.random()*cardGradients.length)]
+  };
+  const cards = getCards();
+  cards.push(card);
+  saveCards(cards);
+  closeModal('modal-newcard');
+  toast('Card created!','success');
+  showPage('cards');
+}
+
+function renderCard(card, idx) {
+  const grad = card.gradient || cardGradients[idx%4];
+  const cvvShown = cvvVisible[card.id];
+  const numShown = numVisible[card.id];
+  const isBlocked = card.status==='blocked';
+  const displayNumber = numShown ? card.cardNumber : maskCard(card.cardNumber);
+  return `
+  <div class="card-item-wrap" id="card-wrap-${card.id}">
+    <div class="card-wrap">
+      <div class="virtual-card ${grad}" onmousemove="tiltCard(event,this)" onmouseleave="resetTilt(this)">
+        <div class="card-shimmer"></div>
+        <div class="card-status-badge ${isBlocked?'badge-blocked':'badge-active'}">${isBlocked?'Blocked':'Active'}</div>
+        <div class="card-chip"><i class="fas fa-microchip"></i></div>
+        <div class="card-number" id="num-${card.id}">${displayNumber}</div>
+        <div class="card-info-row">
+          <div>
+            <div class="card-info-label">Срок</div>
+            <div class="card-info-val">${card.expiry}</div>
+          </div>
+          <div>
+            <div class="card-info-label">CVV <button class="cvv-btn" onclick="toggleCvv('${card.id}')"><i class="fas fa-${cvvShown?'eye-slash':'eye'}"></i></button></div>
+            <div class="card-info-val" id="cvv-${card.id}">${cvvShown?card.cvv:'•••'}</div>
+          </div>
+        </div>
+        <div class="card-logo">VISA</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding:4px 0 8px;border-bottom:1px solid var(--border);">
+      <div style="font-family:'Space Mono',monospace;font-size:12px;color:var(--text-muted);letter-spacing:2px">${displayNumber}</div>
+      <button class="cvv-btn" style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--border);color:var(--text-muted);white-space:nowrap" onclick="toggleNum('${card.id}')">
+        <i class="fas fa-${numShown?'eye-slash':'eye'}"></i> ${numShown?'Hide':'Show'}
+      </button>
+    </div>
+    <div class="card-balance-row">
+      <div>
+        <div class="card-balance-label">Balance</div>
+        <div class="card-balance-val">${fmt(card.balance)}</div>
+      </div>
+      <div>
+        ${!isBlocked
+          ? `<button class="btn-sm btn-red" onclick="toggleBlock('${card.id}')"><i class="fas fa-lock"></i> Block</button>`
+          : `<button class="btn-sm btn-amber" onclick="toggleBlock('${card.id}')"><i class="fas fa-lock-open"></i> Unblock</button>`
+        }
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderCards() {
+  const cards = getUserCards();
+  const grid = $('cards-grid');
+  if (!cards.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-credit-card"></i><p>You don't have any maps yet.<br>Click "New Card" to release it.</p></div>`;
+    return;
+  }
+  grid.innerHTML = cards.map((c,i)=>renderCard(c,i)).join('');
+}
+
+function toggleCvv(cardId) {
+  cvvVisible[cardId] = !cvvVisible[cardId];
+  rerenderCard(cardId);
+}
+
+function toggleNum(cardId) {
+  numVisible[cardId] = !numVisible[cardId];
+  rerenderCard(cardId);
+}
+
+function rerenderCard(cardId) {
+  const cards = getUserCards();
+  const idx = cards.findIndex(c => c.id === cardId);
+  if (idx < 0) return;
+  const wrap = document.getElementById('card-wrap-' + cardId);
+  if (!wrap) return;
+  
+  const tmp = document.createElement('div');
+  tmp.innerHTML = renderCard(cards[idx], idx);
+  const newEl = tmp.firstElementChild;
+  wrap.replaceWith(newEl);
+}
+
+function tiltCard(e, el) {
+  const r = el.getBoundingClientRect();
+  const x = (e.clientX-r.left)/r.width-0.5;
+  const y = (e.clientY-r.top)/r.height-0.5;
+  el.style.transform = `perspective(600px) rotateY(${x*10}deg) rotateX(${-y*10}deg) scale(1.02)`;
+}
+function resetTilt(el) { el.style.transform=''; }
+
+function toggleBlock(cardId) {
+  const cards = getCards();
+  const card = cards.find(c=>c.id===cardId);
+  if (!card) return;
+  const wasBlocked = card.status==='blocked';
+  card.status = wasBlocked?'active':'blocked';
+  saveCards(cards);
+  const txs = getTxs();
+  txs.push({
+    id:'tx_'+uid(), userId:currentUser.id,
+    type: wasBlocked?'unblock':'block',
+    amount:0, cardId, date:new Date().toISOString(), status:'completed',
+    desc: wasBlocked?`Card is unblocked`:`Card is blocked`
+  });
+  saveTxs(txs);
+  toast(wasBlocked?'Card is unblocked':'Card is blocked', wasBlocked?'success':'info');
+  renderCards();
+}
+
+// ─────────── TOPUP ───────────
+function openTopup(preselect) {
+  const cards = getUserCards().filter(c=>c.status==='active');
+  if (!cards.length) return toast('There are no active cards','error');
+  const sel = $('topup-card');
+  sel.innerHTML = cards.map(c=>`<option value="${c.id}" ${c.id===preselect?'selected':''}>${maskCard(c.cardNumber)} — ${fmt(c.balance)}</option>`).join('');
+  $('topup-amount').value='';
+  openModal('modal-topup');
+}
+
+function doTopup() {
+  const cardId = $('topup-card').value;
+  const amount = parseFloat($('topup-amount').value);
+  if (!cardId) return toast('Choose card','error');
+  if (!amount || amount<=0) return toast('Enter the correct amount','error');
+  const cards = getCards();
+  const card = cards.find(c=>c.id===cardId);
+  if (!card||card.status==='blocked') return toast('The card is unavailable','error');
+  card.balance = +(card.balance+amount).toFixed(2);
+  saveCards(cards);
+  const txs = getTxs();
+  txs.push({id:'tx_'+uid(), userId:currentUser.id, type:'topup', amount, cardId, date:new Date().toISOString(), status:'completed'});
+  saveTxs(txs);
+  closeModal('modal-topup');
+  toast(`Карта пополнена на ${fmt(amount)}`,'success');
+  if ($('page-cards').classList.contains('active')) renderCards();
+  else renderDashboard();
+}
+
+// ─────────── TRANSFER ───────────
+function openTransfer(preselect) {
+  const cards = getUserCards().filter(c=>c.status==='active');
+  if (cards.length<2) return toast('You need at least 2 active cards','error');
+  const fromSel = $('transfer-from');
+  const toSel = $('transfer-to');
+  fromSel.innerHTML = cards.map(c=>`<option value="${c.id}" ${c.id===preselect?'selected':''}>${maskCard(c.cardNumber)} — ${fmt(c.balance)}</option>`).join('');
+  toSel.innerHTML = cards.map(c=>`<option value="${c.id}">${maskCard(c.cardNumber)} — ${fmt(c.balance)}</option>`).join('');
+  updateFromBalance();
+  fromSel.onchange = updateFromBalance;
+  $('transfer-amount').value='';
+  openModal('modal-transfer');
+}
+
+function updateFromBalance() {
+  const id = $('transfer-from').value;
+  const cards = getCards();
+  const card = cards.find(c=>c.id===id);
+  $('transfer-from-balance').textContent = card?`Avaliable: ${fmt(card.balance)}`:'';
+}
+
+function doTransfer() {
+  const fromId = $('transfer-from').value;
+  const toId = $('transfer-to').value;
+  const amount = parseFloat($('transfer-amount').value);
+  if (fromId===toId) return toast('Choose another card','error');
+  if (!amount||amount<=0) return toast('Enter the correct amount','error');
+  const cards = getCards();
+  const from = cards.find(c=>c.id===fromId);
+  const to = cards.find(c=>c.id===toId);
+  if (!from||!to) return toast('The card was not found','error');
+  if (from.status==='blocked') return toast('The sending card is blocked','error');
+  if (to.status==='blocked') return toast('The recipient card is blocked','error');
+  if (from.balance<amount) return toast(`Not enough funds. Balance: ${fmt(from.balance)}`,'error');
+  from.balance = +(from.balance-amount).toFixed(2);
+  to.balance = +(to.balance+amount).toFixed(2);
+  saveCards(cards);
+  const txs = getTxs();
+  txs.push({id:'tx_'+uid(), userId:currentUser.id, type:'transfer', amount, fromCardId:fromId, toCardId:toId, date:new Date().toISOString(), status:'completed'});
+  saveTxs(txs);
+  closeModal('modal-transfer');
+  toast(`Transaction ${fmt(amount)} done`,'success');
+  if ($('page-cards').classList.contains('active')) renderCards();
+  else renderDashboard();
+}
+
+// ─────────── DASHBOARD ───────────
+function renderDashboard() {
+  const cards = getUserCards();
+  const txs = getUserTxs();
+  const total = cards.reduce((s,c)=>s+c.balance,0);
+  const active = cards.filter(c=>c.status==='active').length;
+  $('stat-total').textContent = fmt(total);
+  $('stat-cards').textContent = active;
+  $('stat-cards-sub').textContent = `out of ${cards.length} released`;
+  $('stat-txs').textContent = txs.length;
+
+  const barsEl = $('balance-bars');
+  if (!cards.length) { barsEl.innerHTML='<div style="color:var(--text-muted);font-size:13px;margin-top:12px">There are no cards yet</div>'; }
+  else {
+    barsEl.innerHTML = cards.map(c=>{
+      const pct = total>0?Math.round((c.balance/total)*100):0;
+      return `<div class="balance-bar-row">
+        <div class="bar-label" style="min-width:160px;font-family:Space Mono,monospace;font-size:11px">${maskCard(c.cardNumber)}</div>
+        <div class="balance-bar"><div class="balance-bar-fill" style="width:${pct}%"></div></div>
+        <div class="bar-label" style="min-width:64px;text-align:right;font-family:Space Mono,monospace;font-size:12px">${fmt(c.balance)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  const recent = [...txs].reverse().slice(0,5);
+  const txsEl = $('dashboard-txs');
+  if (!recent.length) { txsEl.innerHTML='<div class="empty-state"><i class="fas fa-receipt"></i><p>There are no transactions yet</p></div>'; }
+  else txsEl.innerHTML = recent.map(t=>renderTxItem(t)).join('');
+}
+
+// ─────────── TRANSACTIONS ───────────
+let txFilter = 'all';
+function filterTx(type, btn) {
+  txFilter = type;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAllTxs(type);
+}
+
+function renderAllTxs(type) {
+  const txs = getUserTxs();
+  const filtered = type === 'all' ? txs
+    : type === 'transfer' ? txs.filter(t => t.type==='transfer'||t.type==='ext-transfer-out'||t.type==='ext-transfer-in')
+    : type === 'block'    ? txs.filter(t => t.type==='block'||t.type==='unblock')
+    : txs.filter(t => t.type === type);
+  const el = $('all-txs');
+  if (!filtered.length) { el.innerHTML='<div class="empty-state"><i class="fas fa-receipt"></i><p>Нет транзакций</p></div>'; return; }
+  el.innerHTML = [...filtered].reverse().map(t=>renderTxItem(t)).join('');
+}
+
+function renderTxItem(t) {
+  const cards = getCards();
+  const typeMap = {
+    topup:             {icon:'fa-arrow-down',            cls:'topup',    label:'Deposit'},
+    transfer:          {icon:'fa-arrow-right-arrow-left', cls:'transfer', label:'Internal transfer'},
+    'ext-transfer-out':{icon:'fa-arrow-up-right-dots',   cls:'block',    label:'Transfer (outgoing)'},
+    'ext-transfer-in': {icon:'fa-arrow-down-left',       cls:'topup',    label:'Transfer (incoming)'},
+    purchase:          {icon:'fa-bag-shopping',           cls:'unblock',  label:'Purchase'},
+    block:             {icon:'fa-lock',                  cls:'block',    label:'Block'},
+    unblock:           {icon:'fa-lock-open',             cls:'unblock',  label:'Unblock'},
+  };
+  const info = typeMap[t.type] || {icon:'fa-circle', cls:'topup', label:t.type};
+  let cardRef = '';
+  if (t.cardId) {
+    const c = cards.find(x=>x.id===t.cardId);
+    cardRef = c ? maskCard(c.cardNumber) : '';
+  }
+  if (t.fromCardId && t.toCardId) {
+    const c  = cards.find(x=>x.id===t.fromCardId);
+    const c2 = cards.find(x=>x.id===t.toCardId);
+    cardRef = (c?maskCard(c.cardNumber):'?') + ' → ' + (c2?maskCard(c2.cardNumber):'?');
+  }
+  if (t.type === 'ext-transfer-out') {
+    const c = cards.find(x=>x.id===t.fromCardId);
+    cardRef = (c?maskCard(c.cardNumber):'?') + ' → ' + maskCard(t.toCardNumber||'');
+  }
+  if (t.type === 'ext-transfer-in') {
+    const c = cards.find(x=>x.id===t.toCardId);
+    cardRef = maskCard(t.fromCardNumber||'') + ' → ' + (c?maskCard(c.cardNumber):'?');
+  }
+  const isIncoming = t.type==='topup' || t.type==='ext-transfer-in';
+  const isNeutral  = !t.amount;
+  const amtClass   = isNeutral ? 'neutral' : isIncoming ? 'pos' : 'neg';
+  const amtPrefix  = isIncoming ? '+' : '-';
+  const amtStr     = t.amount ? amtPrefix + fmt(t.amount) : '—';
+  return `<div class="tx-item">
+    <div class="tx-icon ${info.cls}"><i class="fas ${info.icon}"></i></div>
+    <div class="tx-info">
+      <div class="tx-type">${info.label}</div>
+      <div class="tx-date">${fmtDate(t.date)}</div>
+      ${cardRef?`<div class="tx-card-ref">${cardRef}</div>`:''}
+    </div>
+    <div class="tx-amount ${amtClass}">${amtStr}</div>
+  </div>`;
+}
+
+// ─────────── OPERATIONS PAGE ───────────
+function renderOpsRecent() {
+  const txs = getUserTxs();
+  const el = $('ops-recent-txs');
+  if (!el) return;
+  const recent = [...txs].reverse().slice(0, 8);
+  if (!recent.length) {
+    el.innerHTML = '<div class="empty-state"><i class="fas fa-receipt"></i><p>There are no operations yet</p></div>';
+  } else {
+    el.innerHTML = recent.map(t => renderTxItem(t)).join('');
+  }
+}
+
+function openPurchaseModal() {
+  const cards = getUserCards().filter(c => c.status === 'active');
+  if (!cards.length) return toast('There are no active cards', 'error');
+  const sel = $('purchase-card');
+  sel.innerHTML = cards.map(c =>
+    `<option value="${c.id}">${maskCard(c.cardNumber)} — ${fmt(c.balance)}</option>`
+  ).join('');
+  updatePurchaseBalance();
+  sel.onchange = updatePurchaseBalance;
+  openModal('modal-purchase');
+}
+
+function updatePurchaseBalance() {
+  const id = $('purchase-card').value;
+  const card = getCards().find(c => c.id === id);
+  const hint = $('purchase-card-balance');
+  if (hint) hint.textContent = card ? `Avaliable: ${fmt(card.balance)}` : '';
+}
+
+function doPurchase() {
+  const PURCHASE_AMOUNT = 15;
+  const cardId = $('purchase-card').value;
+  const allCards = getCards();
+  const card = allCards.find(c => c.id === cardId);
+  if (!card || card.status === 'blocked') return toast('The card is unavailable', 'error');
+  if (card.balance < PURCHASE_AMOUNT) {
+    return toast(`Not enough funds. Balance: ${fmt(card.balance)}`, 'error');
+  }
+  card.balance = +(card.balance - PURCHASE_AMOUNT).toFixed(2);
+  saveCards(allCards);
+  const txs = getTxs();
+  txs.push({
+    id: 'tx_'+uid(), userId: currentUser.id, type: 'purchase',
+    amount: PURCHASE_AMOUNT, cardId, date: new Date().toISOString(), status: 'completed'
+  });
+  saveTxs(txs);
+  closeModal('modal-purchase');
+  toast(`Purchase on ${fmt(PURCHASE_AMOUNT)} done`, 'success');
+  renderOpsRecent();
+  if ($('page-cards').classList.contains('active')) renderCards();
+}
+
+// ─────────── EXTERNAL TRANSFER (by card number) ───────────
+function openExtTransferModal() {
+  const myCards = getUserCards().filter(c => c.status === 'active');
+  if (!myCards.length) return toast('There are no active cards to send', 'error');
+  const sel = $('ext-transfer-from');
+  sel.innerHTML = myCards.map(c =>
+    `<option value="${c.id}">${maskCard(c.cardNumber)} — ${fmt(c.balance)}</option>`
+  ).join('');
+  $('ext-transfer-to-num').value = '';
+  $('ext-card-lookup').textContent = '';
+  $('ext-from-balance').textContent = '';
+  $('ext-transfer-amount').value = '';
+  updateExtFromBalance();
+  openModal('modal-ext-transfer');
+}
+
+function updateExtFromBalance() {
+  const id = $('ext-transfer-from').value;
+  const card = getCards().find(c => c.id === id);
+  $('ext-from-balance').textContent = card ? `Avaliable: ${fmt(card.balance)}` : '';
+}
+
+function formatCardInput(el) {
+  let val = el.value.replace(/\D/g, '').slice(0, 16);
+  el.value = val.match(/.{1,4}/g)?.join(' ') || val;
+  $('ext-card-lookup').textContent = '';
+  $('ext-card-lookup').style.color = '';
+}
+
+function lookupExtCard() {
+  const raw = $('ext-transfer-to-num').value.replace(/\s/g, '');
+  const hint = $('ext-card-lookup');
+  if (raw.length < 16) { hint.textContent = ''; return; }
+  const formatted = raw.match(/.{4}/g).join(' ');
+
+  const myCards = getUserCards();
+  const isMine = myCards.find(c => c.cardNumber.replace(/\s/g,'') === raw);
+  if (isMine) {
+    hint.textContent = 'This is your own card. Use the internal translation.';
+    hint.style.color = 'var(--amber)';
+    return;
+  }
+
+  const allCards = getCards();
+  const target = allCards.find(c => c.cardNumber.replace(/\s/g,'') === raw);
+  if (!target) {
+    hint.textContent = 'The card was not found';
+    hint.style.color = 'var(--red)';
+    return;
+  }
+  if (target.status === 'blocked') {
+    hint.textContent = 'Card is blocked';
+    hint.style.color = 'var(--red)';
+    return;
+  }
+  const allUsers = getUsers();
+  const owner = allUsers.find(u => u.id === target.userId);
+  const ownerLabel = owner ? owner.email : 'unknown';
+  hint.textContent = `✓ ${maskCard(formatted)} · ${ownerLabel}`;
+  hint.style.color = 'var(--green)';
+}
+
+function doExtTransfer() {
+  const fromId = $('ext-transfer-from').value;
+  const raw = $('ext-transfer-to-num').value.replace(/\s/g, '');
+  const amount = parseFloat($('ext-transfer-amount').value);
+
+  if (raw.length !== 16) return toast('Enter the full card number (16 digits)', 'error');
+  if (!amount || amount <= 0) return toast('Enter the correct amount', 'error');
+
+  const allCards = getCards();
+  const from = allCards.find(c => c.id === fromId);
+  const to = allCards.find(c => c.cardNumber.replace(/\s/g,'') === raw);
+
+  if (!from) return toast('The senders card was not found', 'error');
+  if (from.status === 'blocked') return toast('Your card is blocked', 'error');
+  if (!to) return toast('The recipients card was not found', 'error');
+  if (to.status === 'blocked') return toast('The recipients card is blocked', 'error');
+  if (to.id === fromId) return toast('You cannot transfer money to the same card', 'error');
+
+  const myCards = getUserCards();
+  if (myCards.find(c => c.id === to.id)) {
+    return toast('Use an internal transfer for your cards', 'error');
+  }
+
+  if (from.balance < amount) {
+    return toast(`Not enough funds. Balance: ${fmt(from.balance)}`, 'error');
+  }
+
+  from.balance = +(from.balance - amount).toFixed(2);
+  to.balance = +(to.balance + amount).toFixed(2);
+  saveCards(allCards);
+
+  const txs = getTxs();
+  txs.push({
+    id:'tx_'+uid(), userId:currentUser.id, type:'ext-transfer-out',
+    amount, fromCardId:fromId, toCardNumber:to.cardNumber,
+    toUserId:to.userId, date:new Date().toISOString(), status:'completed'
+  });
+  txs.push({
+    id:'tx_'+uid(), userId:to.userId, type:'ext-transfer-in',
+    amount, toCardId:to.id, fromCardNumber:from.cardNumber,
+    fromUserId:currentUser.id, date:new Date().toISOString(), status:'completed'
+  });
+  saveTxs(txs);
+
+  closeModal('modal-ext-transfer');
+  toast(`Transfer ${fmt(amount)} completed`, 'success');
+  if ($('page-cards').classList.contains('active')) renderCards();
+  else renderDashboard();
+}
+
+// ─────────── MODALS ───────────
+function openModal(id) { $(id).classList.add('open'); }
+function closeModal(id) { $(id).classList.remove('open'); }
+function openNewCardModal() {
+  const count = getUserCards().length;
+  const hint = $('card-limit-hint');
+  if (hint) hint.textContent = `Used ${count} out of ${MAX_CARDS}.`;
+  openModal('modal-newcard');
+}
+
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click', e=>{ if(e.target===o) closeModal(o.id); });
+});
+
+// ─────────── INIT ───────────
+checkAuth();
+</script>
+</body>
+</html>
